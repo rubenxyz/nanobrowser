@@ -31,3 +31,17 @@ export const llmProviderModelNames = {
   [ProviderTypeEnum.OpenRouter]: ['google/gemini-2.5-pro', 'google/gemini-2.5-flash', 'openai/gpt-4o-2024-11-20'],
   // Custom OpenAI providers don't have predefined models as they are user-defined
 };
+
+// DeepSeek model names retired from the API: deepseek-chat and deepseek-reasoner were discontinued, the
+// v4-flash names only redirect to the current model. Saved settings still using them are migrated on read.
+export const retiredDeepSeekModelNames: Record<string, string> = {
+  'deepseek-chat': 'deepseek-flash',
+  'deepseek-reasoner': 'deepseek-flash',
+  'deepseek-v4-flash': 'deepseek-flash',
+  'deepseek-v4-flash-vision-exp': 'deepseek-flash',
+};
+
+// Resolve a possibly retired DeepSeek model name to the current model name
+export function migrateDeepSeekModelName(modelName: string): string {
+  return retiredDeepSeekModelNames[modelName] ?? modelName;
+}

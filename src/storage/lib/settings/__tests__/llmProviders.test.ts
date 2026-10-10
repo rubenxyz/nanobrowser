@@ -47,3 +47,51 @@ describe('llmProviderStore.getAllProviders', () => {
     expect(store['llm-api-keys']).toBe(saved);
   });
 });
+
+describe('llmProviderStore.getAllProviders retired DeepSeek model migration', () => {
+  beforeEach(() => {
+    store['llm-api-keys'] = {
+      providers: {
+        deepseek: {
+          apiKey: 'sk-deepseek',
+          name: 'DeepSeek',
+          type: 'deepseek',
+          modelNames: ['deepseek-chat', 'deepseek-reasoner', 'deepseek-v4-pro'],
+        },
+      },
+    };
+  });
+
+  it('replaces retired DeepSeek model names with deepseek-flash and keeps current ones', async () => {
+    const providers = await llmProviderStore.getAllProviders();
+
+    expect(providers.deepseek.modelNames).toEqual(['deepseek-flash', 'deepseek-v4-pro']);
+  });
+
+  it('replaces the retired legacy v4 flash names and removes the duplicate', async () => {
+    store['llm-api-keys'] = {
+      providers: {
+        deepseek: {
+          apiKey: 'sk-deepseek',
+          name: 'DeepSeek',
+          type: 'deepseek',
+          modelNames: ['deepseek-v4-flash', 'deepseek-v4-flash-vision-exp', 'deepseek-flash'],
+        },
+      },
+    };
+    const providers = await llmProviderStore.getAllProviders();
+
+    expect(providers.deepseek.modelNames).toEqual(['deepseek-flash']);
+  });
+
+  it('does not rewrite model names of other providers', async () => {
+    store['llm-api-keys'] = {
+      providers: {
+        my_gateway: { apiKey: 'sk-gateway', name: 'Gateway', type: 'custom_openai', modelNames: ['deepseek-chat'] },
+      },
+    };
+    const providers = await llmProviderStore.getAllProviders();
+
+    expect(providers.my_gateway.modelNames).toEqual(['deepseek-chat']);
+  });
+});

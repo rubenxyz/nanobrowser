@@ -1,7 +1,7 @@
 import { StorageEnum } from '../base/enums';
 import { createStorage } from '../base/base';
 import type { BaseStorage } from '../base/types';
-import { AgentNameEnum } from './types';
+import { AgentNameEnum, migrateDeepSeekModelName, ProviderTypeEnum } from './types';
 
 // Reasoning effort for a model. 'none' sends no effort, so the model's own default applies
 export type ReasoningEffort = 'none' | 'low' | 'medium' | 'high' | 'xhigh';
@@ -53,6 +53,15 @@ function validateModelConfig(config: ModelConfig) {
   }
 }
 
+// Retired model names (DeepSeek's) are replaced by the current one when configs are read
+function migrateRetiredModelNames(config: ModelConfig): ModelConfig {
+  if (config.provider !== ProviderTypeEnum.DeepSeek) {
+    return config;
+  }
+  const modelName = migrateDeepSeekModelName(config.modelName);
+  return modelName === config.modelName ? config : { ...config, modelName };
+}
+
 export const agentModelStore: AgentModelStorage = {
   ...storage,
   setAgentModel: async (agent: AgentNameEnum, config: ModelConfig) => {
@@ -66,7 +75,8 @@ export const agentModelStore: AgentModelStorage = {
   },
   getAgentModel: async (agent: AgentNameEnum) => {
     const data = await storage.get();
-    return data.agents[agent];
+    const config = data.agents[agent];
+    return config ? migrateRetiredModelNames(config) : undefined;
   },
   resetAgentModel: async (agent: AgentNameEnum) => {
     await storage.set(current => {
@@ -92,7 +102,7 @@ export const agentModelStore: AgentModelStorage = {
     const filteredAgents: Partial<Record<AgentNameEnum, ModelConfig>> = {};
     for (const [agentKey, config] of Object.entries(data.agents)) {
       if (agentKey !== 'validator' && Object.values(AgentNameEnum).includes(agentKey as AgentNameEnum)) {
-        filteredAgents[agentKey as AgentNameEnum] = config;
+        filteredAgents[agentKey as AgentNameEnum] = migrateRetiredModelNames(config);
       }
     }
     return filteredAgents as Record<AgentNameEnum, ModelConfig>;

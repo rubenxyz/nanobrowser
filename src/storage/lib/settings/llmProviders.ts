@@ -1,7 +1,7 @@
 import { StorageEnum } from '../base/enums';
 import { createStorage } from '../base/base';
 import type { BaseStorage } from '../base/types';
-import { llmProviderModelNames, ProviderTypeEnum } from './types';
+import { llmProviderModelNames, migrateDeepSeekModelName, ProviderTypeEnum } from './types';
 import type { ReasoningEffort } from './agentModels';
 
 const AZURE_API_VERSION = '2025-04-01-preview';
@@ -206,6 +206,11 @@ function ensureBackwardCompatibility(providerId: string, config: ProviderConfig)
     if (!updatedConfig.modelNames) {
       // console.log(`[ensureBackwardCompatibility] Adding default modelNames for non-Azure ${providerId}`);
       updatedConfig.modelNames = llmProviderModelNames[providerId as keyof typeof llmProviderModelNames] || [];
+    }
+
+    // Replace retired DeepSeek model names, so saved configs keep working without the user re-adding models
+    if (updatedConfig.type === ProviderTypeEnum.DeepSeek) {
+      updatedConfig.modelNames = [...new Set(updatedConfig.modelNames.map(migrateDeepSeekModelName))];
     }
   }
 
